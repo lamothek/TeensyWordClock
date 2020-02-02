@@ -1,4 +1,3 @@
-
 /*
  * Word Clock - WS2812B
  * 
@@ -16,42 +15,52 @@
  * github.com/lamothek
  */
 
-#include <TimeLib.h>
+//#include <TimeLib.h>
 #include <Adafruit_NeoPixel.h>
 
+#define LED_PIN 5
+#define LED_COUNT 15
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 const byte timeSetPin = 1;            //Pin for setting run/set mode
 const byte setPinStatus = 13;         //Pin (LED) for displaying set status of each press           
 const byte interruptPinMinute = 11;   //Pin name for minute adjust
 const byte interruptPinHour = 12;     //Pin name for hour adjust
+const byte brightnessSetPin = A0;     //Pin for reading voltage to set brightness A0
 
 volatile int _Minute = 0;             //Global int for minutes **Placeholder for now
 volatile int _Hour = 1;               //Global int for hours *Placeholder for now
-
+volatile int _Brightness = 128;       //Global int for LED brigthness 0 - 255
 volatile int DELAY_MS = 200;          //Global int for delay in service routines *Might add hardware debounce
+volatile bool MODE = false;           //System mode for selecting RUN/SET modes
 
 /*
  * Setup section for defining pin types, serial port, ect.
  */
 void setup() 
 {
-  Serial.begin(9600); //Open the serial port at 9600 baud
-  while (!Serial);
-  delay(200);
-  Serial.println("Teensy Word Clock");
-  Serial.println("-----------------");
+    //Open serial port at 9600 baud 
+    Serial.begin(9600);
+    while (!Serial);
+    delay(200);
+    Serial.println("Teensy Word Clock");
+    
+    //Setup minute interrupt on Pin 11 as a digital falling type
+    pinMode(interruptPinMinute, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(interruptPinMinute), isrMinute, FALLING);
+    
+    //Setup hour interrupt on Pin 12 as a digital falling type
+    pinMode(interruptPinHour, INPUT_PULLDOWN);
+    attachInterrupt(digitalPinToInterrupt(interruptPinHour), isrHour, FALLING);
+    
+    pinMode(timeSetPin, INPUT);         //Setup timeSetPin as digital input
+    pinMode(setPinStatus, OUTPUT);      //LED on pin 13 set as output
 
-  //Setup minute interrupt on Pin 11 as a digital falling type
-  pinMode(interruptPinMinute, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPinMinute), isrMinute, FALLING);
-
-  //Setup hour interrupt on Pin 12 as a digital falling type
-  pinMode(interruptPinHour, INPUT_PULLDOWN);
-  attachInterrupt(digitalPinToInterrupt(interruptPinHour), isrHour, FALLING);
-
-  pinMode(timeSetPin, INPUT);     //Setup timeSetPin as digital input
-
-  pinMode(setPinStatus, OUTPUT);  //LED on pin 13 set as output
+    //Strip of LED setup code
+    strip.begin();
+    strip.setBrightness(_Brightness);
+    strip.show();                       //Initialize all pixels to 'off'
+  
 }
 
 /*
@@ -59,84 +68,123 @@ void setup()
  */
 void loop() 
 {
-  _SerialOutput(_Hour, _Minute, 2000);
+     MODE = digitalRead(timeSetPin);
+    _Brightness = systemBrightness();
+    _SerialOutput(MODE, _Hour, _Minute, 2000, _Brightness);
+
+    for (int i = 0; i < 15; i++)
+    {
+        strip.setPixelColor(i, 255, 0, 0);
+        delay(DELAY_MS);
+    }
+    strip.clear();
 }
 
 /*
  * Service Routine for manual hour adjustment on button press.
+ *  Checks if system MODE is in SET position.
+ *  MODE = True - flash LED 3 times, showing an error.
+ *  MODE = False = Increment hour by 1 or roll over to 1 if > 12, flash LED once.
+ *  Delay added for debounce, may be removed with hardware debounce.
  */
 void isrHour() 
 {
-  _Hour++;          //Increment hour global
-
-  //Reset hour to 1 if above 12
-  if (_Hour > 12)
-  {
-    _Hour = 1;
-  }
-  
-  delay(DELAY_MS);    //Delay for debounce
+    if (MODE)
+    {
+        flashLED(3);
+    }
+    else
+    {
+       _Hour++;             //Increment hour global
+    
+        //Reset hour to 1 if above 12
+        if (_Hour > 12)
+        {
+            _Hour = 1;
+        }
+        
+        delay(DELAY_MS);    //Delay for debounce  
+        flashLED(1);
+    }
 }
 
 /*   
  *  Service Routine for manual minute adjustment on button press. 
+ *  Checks if system MODE is in SET position.
+ *  MODE = True - flash LED 3 times, showing an error.
+ *  MODE = False = Increment minute by 1 or roll over to 0 if > 59, flash LED once.
+ *  Delay added for debounce, may be removed with hardware debounce.
  */ 
 void isrMinute() 
 {
-  _Minute++;          //Increment minute global
-  
-  //Reset minute to 0 if above59
-  if (_Minute > 59)
-  {
-    _Minute = 0;
-  }
-  
-  delay(DELAY_MS);    //Delay for debounce
+    if (MODE)
+    {
+        flashLED(3);
+    }
+    else
+    {
+        _Minute++;          //Increment minute global
+    
+        //Reset minute to 0 if above59
+        if (_Minute > 59)
+        {
+            _Minute = 0;
+        }
+        
+        delay(DELAY_MS);    //Delay for debounce 
+        flashLED(1);
+    }
 }
 
 /* 
  *  Serial output method.
  *  Mostly used for debugging purposes.
+ *  _mode - boolean value of mode select to display which setting type we are in.
  *  _hour - current hour.
  *  _minute - current minute.
  *  _delay - delay time in ms.
  */ 
-void _SerialOutput(int _hour, int _minute, int _delay)
+void _SerialOutput(bool _mode, int _hour, int _minute, int _delay, int _brightness)
 {
-  Serial.print(_hour);
-  Serial.print(":");
-  Serial.print(_minute);
-  Serial.println();
-  delay(_delay);
+    String modeString = "";
+    
+    if (_mode)
+        modeString = "Run"; 
+    else
+        modeString = "Set";
+
+    Serial.println("--------------------");
+    Serial.println("Mode: " + modeString);
+    Serial.println((String)"Time: " + _hour + ":" + _minute);
+    Serial.println((String)"Brigthness: " + _brightness);
+    delay(_delay);
 }
 
 /*
  *  Method to flash the built in LED when required. 
- *  Delays 250ms between each flash.
+ *  Delays 100ms between each flash.
  *  numFlashes - number of times to flash the LED.
  */
- /*
 void flashLED(int _numFlashes)
 {
-  for (int i = 0; i < _numFlahes; i++)
-  {
-    digitalWrite(setPinStatus, HIGH);
-    delay(250);
-    digitalWrite(setPinStatus, LOW);
-    delay(250);
-  }
+    for (int i = 0; i < _numFlashes; i++)
+    {
+        digitalWrite(setPinStatus, HIGH);
+        delay(100);
+        digitalWrite(setPinStatus, LOW);
+        delay(100);
+    }
 }
-*/
 
-
-void printDigits(int digits)
+/*
+ * Function for setting system brightness
+ * Reads an analog pin and maps the counts to a voltage from a voltage division.
+ * Converts to a mapped value of 0-255 for system brightness in LED library.
+ */
+int systemBrightness()
 {
-  // utility function for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
-  
-  if(digits < 10)
-  {
-        Serial.print('0');
-  }
-  Serial.print(digits);
+    double voltage = analogRead(brightnessSetPin) * (3.3 / 1023.0);
+    int brightness = ceil((voltage / 3.3) * 255);
+
+    return brightness;
 }
