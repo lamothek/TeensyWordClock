@@ -1,3 +1,4 @@
+
 /*
  * Word Clock - WS2812B
  * 
@@ -15,6 +16,10 @@
  * github.com/lamothek
  */
 
+#include <TimeLib.h>
+#include <Adafruit_NeoPixel.h>
+
+
 const byte timeSetPin = 1;            //Pin for setting run/set mode
 const byte setPinStatus = 13;         //Pin (LED) for displaying set status of each press           
 const byte interruptPinMinute = 11;   //Pin name for minute adjust
@@ -30,9 +35,11 @@ volatile int DELAY_MS = 200;          //Global int for delay in service routines
  */
 void setup() 
 {
-  flashLED(2);
-  
   Serial.begin(9600); //Open the serial port at 9600 baud
+  while (!Serial);
+  delay(200);
+  Serial.println("Teensy Word Clock");
+  Serial.println("-----------------");
 
   //Setup minute interrupt on Pin 11 as a digital falling type
   pinMode(interruptPinMinute, INPUT_PULLUP);
@@ -108,6 +115,7 @@ void _SerialOutput(int _hour, int _minute, int _delay)
  *  Delays 250ms between each flash.
  *  numFlashes - number of times to flash the LED.
  */
+ /*
 void flashLED(int _numFlashes)
 {
   for (int i = 0; i < _numFlahes; i++)
@@ -117,4 +125,18 @@ void flashLED(int _numFlashes)
     digitalWrite(setPinStatus, LOW);
     delay(250);
   }
+}
+*/
+
+
+void printDigits(int digits)
+{
+  // utility function for digital clock display: prints preceding colon and leading 0
+  Serial.print(":");
+  
+  if(digits < 10)
+  {
+        Serial.print('0');
+  }
+  Serial.print(digits);
 }
