@@ -10,6 +10,7 @@ Teensy 3.2 powered word clock using WS2812B LEDs
 
 ## Resources
  [Teensy 3.2](https://www.pjrc.com/store/teensy32.html)
+ 
  [FastLED](http://fastled.io/)
 
 ## Versioning
