@@ -18,7 +18,7 @@
 //#include <TimeLib.h>
 #include <Adafruit_NeoPixel.h>
 
-#define LED_PIN 5
+#define LED_PIN 15
 #define LED_COUNT 15
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -31,7 +31,7 @@ const byte brightnessSetPin = A0;     //Pin for reading voltage to set brightnes
 volatile int _Minute = 0;             //Global int for minutes **Placeholder for now
 volatile int _Hour = 1;               //Global int for hours *Placeholder for now
 volatile int _Brightness = 128;       //Global int for LED brigthness 0 - 255
-volatile int DELAY_MS = 200;          //Global int for delay in service routines *Might add hardware debounce
+volatile int DELAY_MS = 125;          //Global int for delay in service routines *Might add hardware debounce
 volatile bool MODE = false;           //System mode for selecting RUN/SET modes
 
 /*
@@ -58,7 +58,7 @@ void setup()
 
     //Strip of LED setup code
     strip.begin();
-    strip.setBrightness(_Brightness);
+    strip.setBrightness(255);
     strip.show();                       //Initialize all pixels to 'off'
   
 }
@@ -75,7 +75,8 @@ void loop()
     for (int i = 0; i < 15; i++)
     {
         strip.setPixelColor(i, 255, 0, 0);
-        delay(DELAY_MS);
+        strip.show();
+        delay(100);
     }
     strip.clear();
 }
@@ -183,8 +184,8 @@ void flashLED(int _numFlashes)
  */
 int systemBrightness()
 {
-    double voltage = analogRead(brightnessSetPin) * (3.3 / 1023.0);
-    int brightness = ceil((voltage / 3.3) * 255);
+    float voltage = analogRead(brightnessSetPin) * (3.3 / 1023.0);
+    int brightness = ceil((voltage / 3.3) * 1023);
 
     return brightness;
 }
