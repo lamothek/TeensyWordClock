@@ -16,11 +16,11 @@
  */
 
 //#include <TimeLib.h>
-#include <Adafruit_NeoPixel.h>
+#include <FastLED.h>
 
 #define LED_PIN 15
-#define LED_COUNT 15
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+#define LED_COUNT 15    //will actually be 99
+CRGB leds[LED_COUNT];
 
 const byte timeSetPin = 1;            //Pin for setting run/set mode
 const byte setPinStatus = 13;         //Pin (LED) for displaying set status of each press           
@@ -56,11 +56,8 @@ void setup()
     pinMode(timeSetPin, INPUT);         //Setup timeSetPin as digital input
     pinMode(setPinStatus, OUTPUT);      //LED on pin 13 set as output
 
-    //Strip of LED setup code
-    strip.begin();
-    strip.setBrightness(255);
-    strip.show();                       //Initialize all pixels to 'off'
   
+    FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
 }
 
 /*
@@ -68,17 +65,11 @@ void setup()
  */
 void loop() 
 {
-     MODE = digitalRead(timeSetPin);
-    _Brightness = systemBrightness();
-    _SerialOutput(MODE, _Hour, _Minute, 2000, _Brightness);
-
-    for (int i = 0; i < 15; i++)
-    {
-        strip.setPixelColor(i, 255, 0, 0);
-        strip.show();
-        delay(100);
-    }
-    strip.clear();
+     MODE = digitalRead(timeSetPin);                            //Check which mode is slected RUN/SET
+    _Brightness = systemBrightness();                           //Check system brightness setting - TODO - Maybe put in setup and run once?
+    _SerialOutput(MODE, _Hour, _Minute, 2000, _Brightness);     //Spit out some important info on the serial port
+   
+    PingPong();
 }
 
 /*
@@ -188,4 +179,32 @@ int systemBrightness()
     int brightness = ceil((voltage / 3.3) * 1023);
 
     return brightness;
+}
+
+void PingPong()
+{
+    for (int i = 0; i < LED_COUNT; i++)
+    {
+        leds[i] = CRGB::Red;
+        FastLED.show();
+        FastLED.delay(25);
+    }
+    for (int j = LED_COUNT-1; j > 0; j--)
+    {
+        leds[j] = CRGB::Green;
+        FastLED.show();
+        FastLED.delay(50);
+    }
+     for (int k = 0; k < LED_COUNT; k++)
+    {
+        leds[k] = CRGB::Blue;
+        FastLED.show();
+        FastLED.delay(50);
+    }
+    for (int l = LED_COUNT-1; l > 0; l--)
+    {
+        leds[l] = CRGB::Black;
+        FastLED.show();
+        FastLED.delay(50);
+    }
 }
