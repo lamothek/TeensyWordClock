@@ -30,7 +30,7 @@ const byte brightnessSetPin = A0;     //Pin for reading voltage to set brightnes
 
 volatile int _Minute = 0;             //Global int for minutes **Placeholder for now
 volatile int _Hour = 1;               //Global int for hours *Placeholder for now
-volatile int _Brightness = 128;       //Global int for LED brigthness 0 - 255
+volatile int _Brightness = 10;        //Global int for LED brigthness 0 - 255
 volatile int DELAY_MS = 125;          //Global int for delay in service routines *Might add hardware debounce
 volatile bool MODE = false;           //System mode for selecting RUN/SET modes
 
@@ -39,12 +39,10 @@ volatile bool MODE = false;           //System mode for selecting RUN/SET modes
  */
 void setup() 
 {
-    //Open serial port at 9600 baud 
+    //Setup serial port
     Serial.begin(9600);
-    while (!Serial);
-    delay(200);
     Serial.println("Teensy Word Clock");
-    
+
     //Setup minute interrupt on Pin 11 as a digital falling type
     pinMode(interruptPinMinute, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(interruptPinMinute), isrMinute, FALLING);
@@ -60,6 +58,7 @@ void setup()
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
 }
 
+
 /*
  * Code to loop through continually after setup.
  */
@@ -67,7 +66,7 @@ void loop()
 {
      MODE = digitalRead(timeSetPin);                            //Check which mode is slected RUN/SET
     _Brightness = systemBrightness();                           //Check system brightness setting - TODO - Maybe put in setup and run once?
-    _SerialOutput(MODE, _Hour, _Minute, 2000, _Brightness);     //Spit out some important info on the serial port
+    _SerialOutput(MODE, _Hour, _Minute, 500, _Brightness);     //Spit out some important info on the serial port
    
     PingPong();
 }
@@ -172,17 +171,33 @@ void flashLED(int _numFlashes)
  * Function for setting system brightness
  * Reads an analog pin and maps the counts to a voltage from a voltage division.
  * Converts to a mapped value of 0-255 for system brightness in LED library.
+ * Set system brightness using FastLED.setBrightness() function.
+ * Returns value of brightness as a percentage
  */
-int systemBrightness()
+double systemBrightness()
 {
     float voltage = analogRead(brightnessSetPin) * (3.3 / 1023.0);
-    int brightness = ceil((voltage / 3.3) * 1023);
-
-    return brightness;
+    int _Brightness = ceil((voltage / 3.3) * 255);
+    
+    //Force minimum brightness to be 10
+    if (_Brightness < 10)
+    {
+        _Brightness = 10;
+    }
+    
+    FastLED.setBrightness(_Brightness);
+    FastLED.show();
+    
+    double brightnessPercent = (_Brightness / 255.0) * 100.0;
+    
+    return brightnessPercent;
 }
 
 void PingPong()
 {
+    leds[0] = CRGB::Red;
+    FastLED.show();
+    /*
     for (int i = 0; i < LED_COUNT; i++)
     {
         leds[i] = CRGB::Red;
@@ -207,4 +222,5 @@ void PingPong()
         FastLED.show();
         FastLED.delay(50);
     }
+    */
 }
