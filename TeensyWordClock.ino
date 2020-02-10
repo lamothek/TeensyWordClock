@@ -13,9 +13,10 @@
  * 
  * kevinlamothe.ca
  * github.com/lamothek
+ * 
  */
 
-//#include <TimeLib.h>
+#include <TimeLib.h>
 #include <FastLED.h>
 
 #define LED_PIN 15
@@ -34,6 +35,7 @@ volatile int _Brightness = 10;        //Global int for LED brigthness 0 - 255
 volatile int DELAY_MS = 125;          //Global int for delay in service routines *Might add hardware debounce
 volatile bool MODE = false;           //System mode for selecting RUN/SET modes
 
+
 /*
  * Setup section for defining pin types, serial port, ect.
  */
@@ -42,6 +44,11 @@ void setup()
     //Setup serial port
     Serial.begin(9600);
     Serial.println("Teensy Word Clock");
+    if (timeStatus()!= timeSet) {
+    Serial.println("Unable to sync with the RTC");
+  } else {
+    Serial.println("RTC has set the system time");
+  }
 
     //Setup minute interrupt on Pin 11 as a digital falling type
     pinMode(interruptPinMinute, INPUT_PULLUP);
@@ -54,8 +61,9 @@ void setup()
     pinMode(timeSetPin, INPUT);         //Setup timeSetPin as digital input
     pinMode(setPinStatus, OUTPUT);      //LED on pin 13 set as output
 
-  
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
+
+    setSyncProvider(getTeensy3Time);
 }
 
 
@@ -65,10 +73,33 @@ void setup()
 void loop() 
 {
      MODE = digitalRead(timeSetPin);                            //Check which mode is slected RUN/SET
-    _Brightness = systemBrightness();                           //Check system brightness setting - TODO - Maybe put in setup and run once?
-    _SerialOutput(MODE, _Hour, _Minute, 500, _Brightness);     //Spit out some important info on the serial port
-   
+     _Brightness = systemBrightness();                           //Check system brightness setting - TODO - Maybe put in setup and run once?
+    _SerialOutput(MODE, _Hour, _Minute, 1250, _Brightness);     //Spit out some important info on the serial port
+    
     PingPong();
+
+    //
+    if (Serial.available())
+    {
+        time_t t = processSyncMessage();
+        
+        if (t != 0)
+        {
+            Teensy3Clock.set(t);
+            setTime(t);
+        }
+    }
+
+    Serial.print(hour());
+    printDigits(minute());
+    printDigits(second());
+    Serial.print(" ");
+    Serial.print(day());
+    Serial.print(" ");
+    Serial.print(month());
+    Serial.print(" ");
+    Serial.print(year()); 
+    Serial.println(); 
 }
 
 /*
@@ -127,6 +158,55 @@ void isrMinute()
     }
 }
 
+/*
+ * Function to get time_t value of Teensy RTC.
+ */
+time_t getTeensy3Time()
+{
+  return Teensy3Clock.get();
+}
+
+/*  code to process time sync messages from the serial port   */
+#define TIME_HEADER  "T"   // Header tag for serial time sync message
+
+/*
+ * 
+ */
+unsigned long processSyncMessage() 
+{
+  unsigned long pctime = 0L;
+  const unsigned long DEFAULT_TIME = 1357041600; //Jan 1 2013 
+
+  if(Serial.find(TIME_HEADER)) 
+  {
+     pctime = Serial.parseInt();
+     return pctime;
+     
+     if( pctime < DEFAULT_TIME) 
+     { // check the value is a valid time (greater than Jan 1 2013)
+       pctime = 0L; // return 0 to indicate that the time is not valid
+     }
+  }
+  
+  return pctime;
+}
+
+/*
+ * Utility function to for printing time better.
+ * Prints colon and leading 0
+ */
+void printDigits(int digits)
+{
+  Serial.print(":");
+  
+  if(digits < 10)
+  {
+     Serial.print('0');
+  }
+   
+  Serial.print(digits);
+}
+
 /* 
  *  Serial output method.
  *  Mostly used for debugging purposes.
@@ -177,18 +257,18 @@ void flashLED(int _numFlashes)
 double systemBrightness()
 {
     float voltage = analogRead(brightnessSetPin) * (3.3 / 1023.0);
-    int _Brightness = ceil((voltage / 3.3) * 255);
+    int _LEDBrightness = ceil((voltage / 3.3) * 255);
     
     //Force minimum brightness to be 10
-    if (_Brightness < 10)
+    if (_LEDBrightness < 10)
     {
-        _Brightness = 10;
+        _LEDBrightness = 10;
     }
     
-    FastLED.setBrightness(_Brightness);
+    FastLED.setBrightness(_LEDBrightness);
     FastLED.show();
     
-    double brightnessPercent = (_Brightness / 255.0) * 100.0;
+    double brightnessPercent = (_LEDBrightness / 255.0) * 100.0;
     
     return brightnessPercent;
 }
