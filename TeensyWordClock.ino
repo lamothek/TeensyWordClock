@@ -19,8 +19,10 @@
 #include <TimeLib.h>
 #include <FastLED.h>
 
-#define LED_PIN 15
-#define LED_COUNT 15    //will actually be 99
+#define LED_PIN 15          //
+#define LED_COUNT 15        //Will actually be 99
+#define TIME_HEADER  "T"    //Header tag for serial time sync message
+
 CRGB leds[LED_COUNT];
 
 const byte timeSetPin = 1;            //Pin for setting run/set mode
@@ -29,8 +31,11 @@ const byte interruptPinMinute = 11;   //Pin name for minute adjust
 const byte interruptPinHour = 12;     //Pin name for hour adjust
 const byte brightnessSetPin = A0;     //Pin for reading voltage to set brightness A0
 
-volatile int _Minute = 0;             //Global int for minutes **Placeholder for now
-volatile int _Hour = 1;               //Global int for hours *Placeholder for now
+volatile int _Year = 0;               //Global int for Year
+volatile int _Month = 0               //Global int for Month
+volatile int _Day = 0;                //Global int for Day
+volatile int _Minute = 0;             //Global int for Minute
+volatile int _Hour = 0;               //Global int for Hour
 volatile int _Brightness = 10;        //Global int for LED brigthness 0 - 255
 volatile int DELAY_MS = 125;          //Global int for delay in service routines *Might add hardware debounce
 volatile bool MODE = false;           //System mode for selecting RUN/SET modes
@@ -43,13 +48,21 @@ void setup()
 {
     //Setup serial port
     Serial.begin(9600);
+    delay(250);
     Serial.println("Teensy Word Clock");
-    if (timeStatus()!= timeSet) {
-    Serial.println("Unable to sync with the RTC");
-  } else {
-    Serial.println("RTC has set the system time");
-  }
 
+    //Try and get timestatus from RTC and spit out a serial message
+    if (timeStatus()!= timeSet) 
+    {
+      Serial.println("Unable to sync with the RTC");
+    } 
+    else 
+    {
+      Serial.println("RTC has set the system time");
+    }
+
+    setSyncProvider(getTeensy3Time);  //Get time
+    
     //Setup minute interrupt on Pin 11 as a digital falling type
     pinMode(interruptPinMinute, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(interruptPinMinute), isrMinute, FALLING);
@@ -61,9 +74,8 @@ void setup()
     pinMode(timeSetPin, INPUT);         //Setup timeSetPin as digital input
     pinMode(setPinStatus, OUTPUT);      //LED on pin 13 set as output
 
+    //LED setup
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-
-    setSyncProvider(getTeensy3Time);
 }
 
 
@@ -73,7 +85,7 @@ void setup()
 void loop() 
 {
      MODE = digitalRead(timeSetPin);                            //Check which mode is slected RUN/SET
-     _Brightness = systemBrightness();                           //Check system brightness setting - TODO - Maybe put in setup and run once?
+     _Brightness = systemBrightness();                          //Check system brightness setting - TODO - Maybe put in setup and run once?
     _SerialOutput(MODE, _Hour, _Minute, 1250, _Brightness);     //Spit out some important info on the serial port
     
     PingPong();
@@ -166,8 +178,6 @@ time_t getTeensy3Time()
   return Teensy3Clock.get();
 }
 
-/*  code to process time sync messages from the serial port   */
-#define TIME_HEADER  "T"   // Header tag for serial time sync message
 
 /*
  * 
@@ -182,8 +192,9 @@ unsigned long processSyncMessage()
      pctime = Serial.parseInt();
      return pctime;
      
+     //Check the value is a valid time (greater than Jan 1 2013)
      if( pctime < DEFAULT_TIME) 
-     { // check the value is a valid time (greater than Jan 1 2013)
+     {
        pctime = 0L; // return 0 to indicate that the time is not valid
      }
   }
