@@ -93,6 +93,7 @@ void loop()
     //PingPong();
     _Hour = hour();
     _Minute = minute();
+    
     DisplayTime();
     //
     if (Serial.available())
@@ -106,8 +107,8 @@ void loop()
         }
     }
 
-    Serial.print(hour());
-    printDigits(minute());
+    Serial.print(_Hour);
+    printDigits(_Minute);
     printDigits(second());
     Serial.print(" ");
     Serial.print(day());
@@ -339,6 +340,7 @@ void ResetLeds()
 
 void DisplayTime()
 {
+    _Minute
 
     ResetLeds();
     
@@ -347,7 +349,7 @@ void DisplayTime()
     leds[9] = CRGB::White;
     leds[8] = CRGB::White;
 
-    if (minute() >= 0 && minute() < 5) || (minute() ) //Oclock
+    if ((minute() >= 0 && minute() < 5)) //Oclock
     {
         leds[122] = CRGB::White;
         leds[121] = CRGB::White;
@@ -356,22 +358,36 @@ void DisplayTime()
         leds[118] = CRGB::White;
         leds[117] = CRGB::White;
     }
-    else if (minute() >= 5 && < 10)
+    else if ((minute() >= 5 && minute() < 10) || (minute() >= 55 && minute() < 60)) //Five
     {
-        
+         leds[] = CRGB::White;
     }
-    else if ()
+    else if ((minute() >= 10 && minute() < 15) || (minute() >= 50 && minute() < 55)) //Ten
     {
-        
+    leds[] = CRGB::White;
     }
-    else if ()
+    else if ((minute() >= 15 && minute() < 20) || (minute() >= 45 && minute() < 50)) //Fifteen
     {
-        
+    leds[] = CRGB::White;
     }
-    else if ()
+    else if ((minute() >= 20 && minute() < 25) || (minute() >= 40 && minute() < 45)) //Twenty
     {
-        
+    leds[] = CRGB::White;
     }
+     else if ((minute() >= 25 && minute() < 30) || (minute() >= 30 && minute() < 35)) //Twenty Five
+    {
+    leds[] = CRGB::White;
+    }
+    else if ((minute() == 30) //Half
+    {
+        leds[0] = CRGB::White;
+        leds[]1 = CRGB::White;
+        leds[2] = CRGB::White;
+        leds[3] = CRGB::White;
+
+    }
+
+    
 
     switch (hour())
     {
