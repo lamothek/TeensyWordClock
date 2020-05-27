@@ -20,7 +20,7 @@
 #include <FastLED.h>
 
 #define LED_PIN 15          //
-#define LED_COUNT 15        //Will actually be 99
+#define LED_COUNT 130        //Will actually be 99
 #define TIME_HEADER  "T"    //Header tag for serial time sync message
 
 CRGB leds[LED_COUNT];
@@ -32,7 +32,7 @@ const byte interruptPinHour = 12;     //Pin name for hour adjust
 const byte brightnessSetPin = A0;     //Pin for reading voltage to set brightness A0
 
 volatile int _Year = 0;               //Global int for Year
-volatile int _Month = 0               //Global int for Month
+volatile int _Month = 0;               //Global int for Month
 volatile int _Day = 0;                //Global int for Day
 volatile int _Minute = 0;             //Global int for Minute
 volatile int _Hour = 0;               //Global int for Hour
@@ -76,6 +76,8 @@ void setup()
 
     //LED setup
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
+
+    PingPong();
 }
 
 
@@ -88,8 +90,10 @@ void loop()
      _Brightness = systemBrightness();                          //Check system brightness setting - TODO - Maybe put in setup and run once?
     _SerialOutput(MODE, _Hour, _Minute, 1250, _Brightness);     //Spit out some important info on the serial port
     
-    PingPong();
-
+    //PingPong();
+    _Hour = hour();
+    _Minute = minute();
+    DisplayTime();
     //
     if (Serial.available())
     {
@@ -281,37 +285,178 @@ double systemBrightness()
     
     double brightnessPercent = (_LEDBrightness / 255.0) * 100.0;
     
-    return brightnessPercent;
+    //return brightnessPercent;
+    return 5;
 }
 
 void PingPong()
 {
-    leds[0] = CRGB::Red;
-    FastLED.show();
+    //leds[0] = CRGB::Red;
+    //FastLED.show();
     /*
     for (int i = 0; i < LED_COUNT; i++)
     {
         leds[i] = CRGB::Red;
         FastLED.show();
-        FastLED.delay(25);
+        FastLED.delay(5);
     }
     for (int j = LED_COUNT-1; j > 0; j--)
     {
         leds[j] = CRGB::Green;
         FastLED.show();
-        FastLED.delay(50);
+        FastLED.delay(5);
     }
      for (int k = 0; k < LED_COUNT; k++)
     {
         leds[k] = CRGB::Blue;
         FastLED.show();
-        FastLED.delay(50);
+        FastLED.delay(5);
     }
+      for (int k = 0; k < LED_COUNT; k++)
+    {
+        leds[k] = CRGB::White;
+        FastLED.show();
+        FastLED.delay(5);
+    }
+    */
     for (int l = LED_COUNT-1; l > 0; l--)
     {
         leds[l] = CRGB::Black;
         FastLED.show();
-        FastLED.delay(50);
+        FastLED.delay(5);
     }
-    */
+}
+
+void ResetLeds()
+{
+    for (int l = LED_COUNT-1; l > 0; l--)
+    {
+        leds[l] = CRGB::Black;
+        //FastLED.show();
+    }
+           
+}
+
+void DisplayTime()
+{
+
+    ResetLeds();
+    
+    leds[12] = CRGB::White;
+    leds[11] = CRGB::White;
+    leds[9] = CRGB::White;
+    leds[8] = CRGB::White;
+
+    if (minute() >= 0 && minute() < 5) || (minute() ) //Oclock
+    {
+        leds[122] = CRGB::White;
+        leds[121] = CRGB::White;
+        leds[120] = CRGB::White;
+        leds[119] = CRGB::White;
+        leds[118] = CRGB::White;
+        leds[117] = CRGB::White;
+    }
+    else if (minute() >= 5 && < 10)
+    {
+        
+    }
+    else if ()
+    {
+        
+    }
+    else if ()
+    {
+        
+    }
+    else if ()
+    {
+        
+    }
+
+    switch (hour())
+    {
+        case 1:
+            leds[64] = CRGB::White;
+            leds[63] = CRGB::White;
+            leds[62] = CRGB::White;
+            break;
+        case 2:
+            leds[90] = CRGB::White;
+            leds[89] = CRGB::White;
+            leds[88] = CRGB::White;
+            break;
+        case 3:
+        case 15:
+            leds[56] = CRGB::White;
+            leds[55] = CRGB::White;
+            leds[54] = CRGB::White;
+            leds[53] = CRGB::White;
+            leds[52] = CRGB::White;
+            FastLED.show();
+            break;
+        case 4:
+        case 16:
+            leds[72] = CRGB::White;
+            leds[71] = CRGB::White;
+            leds[70] = CRGB::White;
+            leds[69] = CRGB::White;
+            break;
+        case 5:
+            leds[94] = CRGB::White;
+            leds[93] = CRGB::White;
+            leds[92] = CRGB::White;
+            leds[91] = CRGB::White;
+            break;
+        case 6:
+            leds[116] = CRGB::White;
+            leds[115] = CRGB::White;
+            leds[114] = CRGB::White;
+            break;
+        case 7:
+            leds[99] = CRGB::White;
+            leds[98] = CRGB::White;
+            leds[97] = CRGB::White;
+            leds[96] = CRGB::White;
+            leds[95] = CRGB::White;
+            break;
+        case 8:
+            leds[83] = CRGB::White;
+            leds[82] = CRGB::White;
+            leds[81] = CRGB::White;
+            leds[80] = CRGB::White;
+            leds[79] = CRGB::White;
+            break;
+        case 9:
+            leds[103] = CRGB::White;
+            leds[102] = CRGB::White;
+            leds[101] = CRGB::White;
+            leds[100] = CRGB::White;
+            break;
+        case 10:
+            leds[106] = CRGB::White;
+            leds[105] = CRGB::White;
+            leds[104] = CRGB::White;
+            break;
+        case 11:
+            leds[77] = CRGB::White;
+            leds[76] = CRGB::White;
+            leds[75] = CRGB::White;
+            leds[74] = CRGB::White;
+            leds[73] = CRGB::White;
+            leds[72] = CRGB::White;
+            break;
+        case 12:
+            leds[129] = CRGB::White;
+            leds[128] = CRGB::White;
+            leds[127] = CRGB::White;
+            leds[126] = CRGB::White;
+            leds[125] = CRGB::White;
+            leds[124] = CRGB::White;
+            break;
+    }
+
+
+    FastLED.show();
+
+    
 }
